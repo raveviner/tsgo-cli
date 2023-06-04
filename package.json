@@ -1,0 +1,22 @@
+{
+  "name": "typedscript-cli",
+  "version": "1.0.0",
+  "description": "CLI tool for generating TypeScript boilerplate",
+  "bin": {
+    "express-boilerplate": "./index.js"
+  },
+  "dependencies": {
+    "commander": "^10.0.1"
+  },
+  "preferGlobal": true,
+  "engines": {
+    "node": ">=10"
+  },
+  "files": [
+    "index.js",
+    "src/"
+  ],
+  "scripts": {
+    "start": "node index.js"
+  }
+}
