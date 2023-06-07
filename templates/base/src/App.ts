@@ -1,22 +1,22 @@
-import express from 'express';
+import cors from 'cors';
+import express, {Application} from 'express';
+import { PublicRouter } from './routers/PublicRouter';
 
-export class App {
-  private app: express.Application;
+export default class App {
+    public express: Application;
 
-  constructor() {
-    this.app = express();
-  }
+    constructor() {
+        this.express = express();
+    }
 
-  private configureRoutes(): void {
-    this.app.get('/', (req, res) => {
-      res.send('Hello, World!');
-    });
-  }
+    public async init(): Promise<void> {
+        this.express.use(express.urlencoded({extended: true}));
+        this.express.use(express.json());
+        this.express.use(cors());
+        this.routes();
+    }
 
-  public start(): void {
-    this.configureRoutes();
-    this.app.listen(3000, () => {
-      console.log('Server started on port 3000');
-    });
-  }
+    private routes(): void {
+        this.express.use('/', new PublicRouter().router);
+    }
 }
