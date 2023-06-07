@@ -6,7 +6,9 @@
     "express-boilerplate": "./index.js"
   },
   "dependencies": {
-    "commander": "^10.0.1"
+    "chalk": "^4.1.2",
+    "commander": "^10.0.1",
+    "inquirer": "^8.2.5"
   },
   "preferGlobal": true,
   "engines": {
