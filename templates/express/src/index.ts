@@ -1,18 +1,20 @@
 import App from './App';
+import { Logger } from './utils/Logger';
 
 const port = process.env.PORT || 3000;
+const logger = Logger.getLogger();
 
 const app = new App();
 app.init();
 
 const server = app.express.listen(port, () => {
-    console.log(`[server]︰ Listening to port ${port}`);
+    logger.info(`listening to port ${port}...`);
 });
 
 const exitHandler = () => {
     if (server) {
         server.close(() => {
-            console.log('[server]︰ Server closed');
+            logger.info('server closed');
             process.exit(1);
         });
     } else {
@@ -20,8 +22,8 @@ const exitHandler = () => {
     }
 };
 
-const unexpectedErrorHandler = (error: string) => {
-    console.error(error);
+const unexpectedErrorHandler = (error: Error) => {
+    logger.error(`${error.name}: ${error.message}`);
     exitHandler();
 };
 
@@ -29,7 +31,7 @@ process.on('uncaughtException', unexpectedErrorHandler);
 process.on('unhandledRejection', unexpectedErrorHandler);
 
 process.on('SIGTERM', () => {
-    console.log('[server]︰ SIGTERM received');
+    logger.info('SIGTERM received');
     if (server) {
         server.close();
     }

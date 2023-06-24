@@ -16,6 +16,7 @@ export abstract class BaseRouter {
             try {
                 await fn(req, res, next);
             } catch (error) {
+                // pass it to the error middleware
                 next(error);
             }
         };

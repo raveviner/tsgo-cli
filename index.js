@@ -7,6 +7,21 @@ const {Command} = require('commander');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
 
+function printColorfulString(str) {
+    for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+        const color = getRandomColor();
+        process.stdout.write(chalk[color].underline.bold(char));
+    }
+    process.stdout.write('\n');
+}
+
+function getRandomColor() {
+    const colors = ['red', 'green', 'blue', 'yellow', 'magenta', 'cyan'];
+    const randomIndex = Math.floor(Math.random() * colors.length);
+    return colors[randomIndex];
+}
+
 class BoilerplateGenerator {
     constructor(projectName) {
         this.projectName = projectName;
@@ -26,34 +41,30 @@ class BoilerplateGenerator {
     }
 
     installDependencies() {
-        execSync('npm update --save', {cwd: this.projectPath});
+        execSync('npm update --save', {cwd: this.projectPath, stdio: 'inherit'});
     }
 
     generateBoilerplate(choices) {
-        console.log(`[typedscript-cli]: Creating project directory ${this.projectName}`);
+        process.stdout.write(`Creating project directory ${this.projectName}`);
         this.createProjectDirectory();
         if (choices.length === 0) {
             this.createBaseApp();
         }
         if (choices.indexOf('express') !== -1) {
-          console.log(`[typedscript-cli]: Adding express`);
+            process.stdout.write(`Adding express`);
             this.createExpressApp();
         }
-        if (choices.indexOf('winston') !== -1) {
-          console.log(`[typedscript-cli]: Adding winston`);
-        }
-        if (choices.indexOf('eslint') !== -1) {
-          console.log(`[typedscript-cli]: Adding eslint`);
-        }
-        if (choices.indexOf('prettier') !== -1) {
-          console.log(`[typedscript-cli]: Adding prettier`);
-        }
-        if (choices.indexOf('jest') !== -1) {
-          console.log(`[typedscript-cli]: Adding jest`);
-        }
-        console.log(`[typedscript-cli]: Installing dependencies...`);
+        // if (choices.indexOf('eslint') !== -1) {
+        //   process.stdout.write(`Adding eslint`);
+        // }
+        // if (choices.indexOf('prettier') !== -1) {
+        //   process.stdout.write(`Adding prettier`);
+        // }
+        process.stdout.write(`Installing dependencies...`);
         this.installDependencies();
-        console.log(`[typedscript-cli]: Done!`);
+        printColorfulString(`\n\n\tTypedscript cli\n`);
+        process.stdout.write(`\tcd ${this.projectName}\n`);
+        process.stdout.write(`\tnpm run dev\n\n`)
     }
 }
 
@@ -63,29 +74,22 @@ program.name('typedscript-cli').description('CLI tool for generating TypeScript 
 
 program
     .command('create <name>')
-    .description('Create a new Express app in TypeScript')
+    .description('Create an app in TypeScript')
     .action((name) => {
         const options = [
             {
                 name: 'Web server (express)',
                 value: 'express',
             },
-            {
-                name: 'Logger (winston)',
-                value: 'winston',
-            },
-            {
-                name: 'Linter (eslint)',
-                value: 'eslint',
-            },
-            {
-                name: 'Formatter (prettier)',
-                value: 'prettier',
-            },
-            {
-                name: 'Tester (jest)',
-                value: 'jest',
-            },
+            // TODO
+            // {
+            //     name: 'Linter (eslint)',
+            //     value: 'eslint',
+            // },
+            // {
+            //     name: 'Formatter (prettier)',
+            //     value: 'prettier',
+            // },
         ];
 
         inquirer
