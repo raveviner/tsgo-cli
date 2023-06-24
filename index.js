@@ -62,7 +62,7 @@ class BoilerplateGenerator {
         // }
         process.stdout.write(`Installing dependencies...`);
         this.installDependencies();
-        printColorfulString(`\n\n\tTypedscript cli\n`);
+        printColorfulString(`\n\n\TypedScript\n`);
         process.stdout.write(`\tcd ${this.projectName}\n`);
         process.stdout.write(`\tnpm run dev\n\n`)
     }
@@ -70,7 +70,7 @@ class BoilerplateGenerator {
 
 const program = new Command();
 
-program.name('typedscript-cli').description('CLI tool for generating TypeScript boilerplate').version(require('./package.json').version);
+program.name('TypedScript').description('CLI tool for generating TypeScript boilerplate').version(require('./package.json').version);
 
 program
     .command('create <name>')
