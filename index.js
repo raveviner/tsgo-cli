@@ -2,8 +2,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const {execSync} = require('child_process');
-const {Command} = require('commander');
+const { execSync } = require('child_process');
+const { Command } = require('commander');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
 
@@ -23,6 +23,8 @@ function getRandomColor() {
 }
 
 class BoilerplateGenerator {
+    devDependencies = [];
+
     constructor(projectName) {
         this.projectName = projectName;
         this.projectPath = path.join(process.cwd(), this.projectName);
@@ -33,38 +35,76 @@ class BoilerplateGenerator {
     }
 
     createBaseApp() {
-        fs.cpSync(path.join(process.cwd(), '/templates/base'), this.projectPath, {recursive: true});
-    }
-
-    createExpressApp() {
-        fs.cpSync(path.join(process.cwd(), '/templates/express'), this.projectPath, {recursive: true});
+        fs.cpSync(path.join(process.cwd(), '/templates/base'), this.projectPath, { recursive: true });
+        this.editPackageJson('name', () => this.projectName);
+        this.devDependencies.push('ts-node', 'typescript');
     }
 
     installDependencies() {
-        execSync('npm update --save', {cwd: this.projectPath, stdio: 'inherit'});
+        execSync(`npm install ${this.devDependencies.join(' ')} --save-dev`, { cwd: this.projectPath, stdio: 'inherit' });
+    }
+
+    addNodemon() {
+        this.devDependencies.push('nodemon');
+        this.editPackageJson('scripts', (value) => {
+            return { ...value, dev: 'nodemon src/index.ts' };
+        });
+    }
+
+    addDotenv() {
+        this.devDependencies.push('dotenv');
+        fs.writeFileSync(path.join(this.projectPath, '.env'), '');
+    }
+
+    addEslint() {
+        this.devDependencies.push('eslint');
+        fs.writeFileSync(path.join(this.projectPath, '.eslintrc.json'), '');
+        this.editPackageJson('scripts', (value) => {
+            return { ...value, lint: 'eslint .', 'lint:fix': 'eslint --fix .' };
+        });
+    }
+
+    addPrettier() {
+        this.devDependencies.push('prettier');
+        fs.writeFileSync(path.join(this.projectPath, '.prettierrc.json'), '');
+        this.editPackageJson('scripts', (value) => {
+            return { ...value, format: 'prettier . --write"' };
+        });
+    }
+
+    editPackageJson(field, cb) {
+        const packageJson = JSON.parse(fs.readFileSync(path.join(this.projectPath, 'package.json')).toString());
+        packageJson[field] = cb(packageJson[field]);
+        fs.writeFileSync(path.join(this.projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
     }
 
     generateBoilerplate(choices) {
         process.stdout.write(`Creating project directory ${this.projectName}`);
         this.createProjectDirectory();
-        if (choices.length === 0) {
-            this.createBaseApp();
+        this.createBaseApp();
+
+        if (choices.indexOf('nodemon') !== -1) {
+            process.stdout.write(`Adding nodemon`);
+            this.addNodemon();
         }
-        if (choices.indexOf('express') !== -1) {
-            process.stdout.write(`Adding express`);
-            this.createExpressApp();
+
+        if (choices.indexOf('dotenv') !== -1) {
+            process.stdout.write(`Adding dotenv`);
+            this.addDotenv();
         }
-        // if (choices.indexOf('eslint') !== -1) {
-        //   process.stdout.write(`Adding eslint`);
-        // }
-        // if (choices.indexOf('prettier') !== -1) {
-        //   process.stdout.write(`Adding prettier`);
-        // }
+        if (choices.indexOf('eslint') !== -1) {
+            process.stdout.write(`Adding eslint`);
+            this.addEslint();
+        }
+        if (choices.indexOf('prettier') !== -1) {
+            process.stdout.write(`Adding prettier`);
+            this.addPrettier();
+        }
         process.stdout.write(`Installing dependencies...`);
         this.installDependencies();
         printColorfulString(`\n\n\TypedScript\n`);
         process.stdout.write(`\tcd ${this.projectName}\n`);
-        process.stdout.write(`\tnpm run dev\n\n`)
+        process.stdout.write(`\tnpm run dev\n\n`);
     }
 }
 
@@ -78,18 +118,21 @@ program
     .action((name) => {
         const options = [
             {
-                name: 'Web server (express)',
-                value: 'express',
+                name: 'nodemon (hot reload)',
+                value: 'nodemon',
             },
-            // TODO
-            // {
-            //     name: 'Linter (eslint)',
-            //     value: 'eslint',
-            // },
-            // {
-            //     name: 'Formatter (prettier)',
-            //     value: 'prettier',
-            // },
+            {
+                name: 'Dotenv (env variables)',
+                value: 'dotenv',
+            },
+            {
+                name: 'Linter (eslint)',
+                value: 'eslint',
+            },
+            {
+                name: 'Formatter (prettier)',
+                value: 'prettier',
+            },
         ];
 
         inquirer

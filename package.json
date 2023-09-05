@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "CLI tool for generating TypeScript boilerplate",
   "bin": {
-    "express-boilerplate": "./index.js"
+    "typedscript": "./index.js"
   },
   "dependencies": {
     "chalk": "^4.1.2",
     "commander": "^10.0.1",
-    "inquirer": "^8.2.5"
+    "inquirer": "^8.2.6"
   },
   "preferGlobal": true,
   "engines": {
