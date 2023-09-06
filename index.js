@@ -5,22 +5,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { Command } = require('commander');
 const inquirer = require('inquirer');
-const chalk = require('chalk');
-
-function printColorfulString(str) {
-    for (let i = 0; i < str.length; i++) {
-        const char = str[i];
-        const color = getRandomColor();
-        process.stdout.write(chalk[color].underline.bold(char));
-    }
-    process.stdout.write('\n');
-}
-
-function getRandomColor() {
-    const colors = ['red', 'green', 'blue', 'yellow', 'magenta', 'cyan'];
-    const randomIndex = Math.floor(Math.random() * colors.length);
-    return colors[randomIndex];
-}
+const figlet = require("figlet");
 
 class BoilerplateGenerator {
     devDependencies = [];
@@ -102,15 +87,20 @@ class BoilerplateGenerator {
         }
         process.stdout.write(`Installing dependencies...`);
         this.installDependencies();
-        printColorfulString(`\n\n\TypedScript\n`);
-        process.stdout.write(`\tcd ${this.projectName}\n`);
-        process.stdout.write(`\tnpm run dev\n\n`);
+        process.stdout.write(`\n`);
+        console.log(figlet.textSync("tsgo cli", 'univers'));
+        process.stdout.write(`\n`);
+        process.stdout.write(`🪬  Successfully created project.\n`);
+        process.stdout.write(`🪬  Get started with the following commands:\n`);
+        process.stdout.write(`\n`);
+        process.stdout.write(`   cd ${this.projectName}\n`);
+        process.stdout.write(`   npm run dev\n\n`);
     }
 }
 
 const program = new Command();
 
-program.name('TypedScript').description('CLI tool for generating TypeScript boilerplate').version(require('./package.json').version);
+program.name('tsgo').description('CLI tool for generating TypeScript boilerplate').version(require('./package.json').version);
 
 program
     .command('create <name>')

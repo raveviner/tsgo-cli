@@ -1,13 +1,13 @@
 {
-  "name": "typedscript",
+  "name": "tsgo",
   "version": "1.0.0",
   "description": "CLI tool for generating TypeScript boilerplate",
   "bin": {
-    "typedscript": "./index.js"
+    "tsgo": "./index.js"
   },
   "dependencies": {
-    "chalk": "^4.1.2",
     "commander": "^10.0.1",
+    "figlet": "^1.6.0",
     "inquirer": "^8.2.6"
   },
   "preferGlobal": true,
@@ -20,5 +20,7 @@
   ],
   "scripts": {
     "start": "node index.js"
-  }
+  },
+  "author": "Rave Viner",
+  "license": "MIT"
 }

@@ -1,18 +1,18 @@
-# TypedScript
+# tsgo
 
-TypedScript is a command-line tool designed to streamline the process of setting up new TypeScript projects. It provides a convenient way to generate a well-structured TypeScript project boilerplate with essential configurations and files, allowing developers to quickly kick-start their TypeScript projects.
+tsgo is a command-line tool designed to streamline the process of setting up new TypeScript projects. It provides a convenient way to generate a well-structured TypeScript project boilerplate with essential configurations and files, allowing developers to quickly kick-start their TypeScript projects.
 
 ## Installation
 
 ```bash
-npm install -g typedscript
+npm install -g tsgo
 ```
 ```bash
-typedscript create <project_name>
+tsgo create <project_name>
 ```
 or
 ```bash
-npx typedscript create <project_name>
+npx tsgo create <project_name>
 ```
 
 ## Contributing
