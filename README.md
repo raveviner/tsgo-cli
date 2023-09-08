@@ -5,7 +5,7 @@ tsgo is a command-line tool designed to streamline the process of setting up new
 ## Installation
 
 ```bash
-npm install -g tsgo
+npm install -g tsgo-cli
 ```
 ```bash
 tsgo create <project_name>
