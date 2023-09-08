@@ -10,7 +10,6 @@
     "figlet": "^1.6.0",
     "inquirer": "^8.2.6"
   },
-  "preferGlobal": true,
   "engines": {
     "node": ">=10"
   },
@@ -21,6 +20,7 @@
   "scripts": {
     "start": "node index.js"
   },
+  "keywords": ["typescript", "nodejs", "boilerplate", "starter", "cli", "template", "generator", "ts"],
   "author": "Rave Viner",
   "license": "MIT"
 }

@@ -32,7 +32,7 @@ class BoilerplateGenerator {
     addNodemon() {
         this.devDependencies.push('nodemon');
         this.editPackageJson('scripts', (value) => {
-            return { ...value, dev: 'nodemon src/index.ts' };
+            return { ...value, 'start:watch': 'nodemon src/index.ts' };
         });
     }
 
@@ -43,17 +43,19 @@ class BoilerplateGenerator {
 
     addEslint() {
         this.devDependencies.push('eslint');
-        fs.writeFileSync(path.join(this.projectPath, '.eslintrc.json'), '');
+        fs.copyFileSync(path.join(process.cwd(), '/templates/config-files/.eslintrc'), path.join(this.projectPath, '.eslintrc'));
+        fs.copyFileSync(path.join(process.cwd(), '/templates/config-files/.eslintignore'), path.join(this.projectPath, '.eslintignore'));
         this.editPackageJson('scripts', (value) => {
-            return { ...value, lint: 'eslint .', 'lint:fix': 'eslint --fix .' };
+            return { ...value, lint: "eslint '**/*.ts'", 'lint:fix': "eslint --fix '**/*.ts'" };
         });
     }
 
     addPrettier() {
         this.devDependencies.push('prettier');
-        fs.writeFileSync(path.join(this.projectPath, '.prettierrc.json'), '');
+        fs.copyFileSync(path.join(process.cwd(), '/templates/config-files/.prettierrc'), path.join(this.projectPath, '.prettierrc'));
+        fs.copyFileSync(path.join(process.cwd(), '/templates/config-files/.prettierignore'), path.join(this.projectPath, '.prettierignore'));
         this.editPackageJson('scripts', (value) => {
-            return { ...value, format: 'prettier . --write"' };
+            return { ...value, 'prettier:fix': 'prettier . --write', prettier: 'prettier . --check' };
         });
     }
 
@@ -64,28 +66,28 @@ class BoilerplateGenerator {
     }
 
     generateBoilerplate(choices) {
-        process.stdout.write(`Creating project directory ${this.projectName}`);
+        process.stdout.write(`Creating project directory ${this.projectName}\n`);
         this.createProjectDirectory();
         this.createBaseApp();
 
         if (choices.indexOf('nodemon') !== -1) {
-            process.stdout.write(`Adding nodemon`);
+            process.stdout.write(`Adding nodemon\n`);
             this.addNodemon();
         }
 
         if (choices.indexOf('dotenv') !== -1) {
-            process.stdout.write(`Adding dotenv`);
+            process.stdout.write(`Adding dotenv\n`);
             this.addDotenv();
         }
         if (choices.indexOf('eslint') !== -1) {
-            process.stdout.write(`Adding eslint`);
+            process.stdout.write(`Adding eslint\n`);
             this.addEslint();
         }
         if (choices.indexOf('prettier') !== -1) {
-            process.stdout.write(`Adding prettier`);
+            process.stdout.write(`Adding prettier\n`);
             this.addPrettier();
         }
-        process.stdout.write(`Installing dependencies...`);
+        process.stdout.write(`Installing dependencies...\n`);
         this.installDependencies();
         process.stdout.write(`\n`);
         console.log(figlet.textSync("tsgo cli", 'univers'));
@@ -94,7 +96,7 @@ class BoilerplateGenerator {
         process.stdout.write(`🪬  Get started with the following commands:\n`);
         process.stdout.write(`\n`);
         process.stdout.write(`   cd ${this.projectName}\n`);
-        process.stdout.write(`   npm run dev\n\n`);
+        process.stdout.write(`   npm run start\n\n`);
     }
 }
 
