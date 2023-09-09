@@ -5,7 +5,8 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { Command } = require('commander');
 const inquirer = require('inquirer');
-const figlet = require("figlet");
+const figlet = require('figlet');
+const readline = require('readline');
 
 class BoilerplateGenerator {
     devDependencies = [];
@@ -16,11 +17,37 @@ class BoilerplateGenerator {
     }
 
     createProjectDirectory() {
-        fs.mkdirSync(this.projectPath);
+        return new Promise((resolve) => {
+            if (fs.existsSync(this.projectPath)) {
+                const rl = readline.createInterface({
+                    input: process.stdin,
+                    output: process.stdout,
+                });
+
+                rl.question(`Destination folder '${this.projectPath}' already exists. Do you want to overwrite it? (yes/no): `, (answer) => {
+                    if (!['yes', 'y'].includes(answer.toLowerCase())) {
+                        process.stdout.write('Aborted.\n');
+                        process.exit(0);
+                    }
+                    try {
+                        fs.rmSync(this.projectPath, { recursive: true });
+                        fs.mkdirSync(this.projectPath);
+                        rl.close();
+                        resolve();
+                    } catch (e) {
+                        process.stdout.write('Failed to remove directory.\n');
+                        process.exit(1);
+                    }
+                });
+            } else {
+                fs.mkdirSync(this.projectPath);
+                resolve();
+            }
+        });
     }
 
     createBaseApp() {
-        fs.cpSync(path.join(process.cwd(), '/templates/base'), this.projectPath, { recursive: true });
+        fs.cpSync(path.join(__dirname, '/templates/base'), this.projectPath, { recursive: true });
         this.editPackageJson('name', () => this.projectName);
         this.devDependencies.push('ts-node', 'typescript');
     }
@@ -43,8 +70,8 @@ class BoilerplateGenerator {
 
     addEslint() {
         this.devDependencies.push('eslint');
-        fs.copyFileSync(path.join(process.cwd(), '/templates/config-files/.eslintrc'), path.join(this.projectPath, '.eslintrc'));
-        fs.copyFileSync(path.join(process.cwd(), '/templates/config-files/.eslintignore'), path.join(this.projectPath, '.eslintignore'));
+        fs.copyFileSync(path.join(__dirname, '/templates/config-files/.eslintrc'), path.join(this.projectPath, '.eslintrc'));
+        fs.copyFileSync(path.join(__dirname, '/templates/config-files/.eslintignore'), path.join(this.projectPath, '.eslintignore'));
         this.editPackageJson('scripts', (value) => {
             return { ...value, lint: "eslint '**/*.ts'", 'lint:fix': "eslint --fix '**/*.ts'" };
         });
@@ -52,8 +79,8 @@ class BoilerplateGenerator {
 
     addPrettier() {
         this.devDependencies.push('prettier');
-        fs.copyFileSync(path.join(process.cwd(), '/templates/config-files/.prettierrc'), path.join(this.projectPath, '.prettierrc'));
-        fs.copyFileSync(path.join(process.cwd(), '/templates/config-files/.prettierignore'), path.join(this.projectPath, '.prettierignore'));
+        fs.copyFileSync(path.join(__dirname, '/templates/config-files/.prettierrc'), path.join(this.projectPath, '.prettierrc'));
+        fs.copyFileSync(path.join(__dirname, '/templates/config-files/.prettierignore'), path.join(this.projectPath, '.prettierignore'));
         this.editPackageJson('scripts', (value) => {
             return { ...value, 'prettier:fix': 'prettier . --write', prettier: 'prettier . --check' };
         });
@@ -67,36 +94,37 @@ class BoilerplateGenerator {
 
     generateBoilerplate(choices) {
         process.stdout.write(`Creating project directory ${this.projectName}\n`);
-        this.createProjectDirectory();
-        this.createBaseApp();
+        this.createProjectDirectory().then(() => {
+            this.createBaseApp();
 
-        if (choices.indexOf('nodemon') !== -1) {
-            process.stdout.write(`Adding nodemon\n`);
-            this.addNodemon();
-        }
+            if (choices.indexOf('nodemon') !== -1) {
+                process.stdout.write(`Adding nodemon\n`);
+                this.addNodemon();
+            }
 
-        if (choices.indexOf('dotenv') !== -1) {
-            process.stdout.write(`Adding dotenv\n`);
-            this.addDotenv();
-        }
-        if (choices.indexOf('eslint') !== -1) {
-            process.stdout.write(`Adding eslint\n`);
-            this.addEslint();
-        }
-        if (choices.indexOf('prettier') !== -1) {
-            process.stdout.write(`Adding prettier\n`);
-            this.addPrettier();
-        }
-        process.stdout.write(`Installing dependencies...\n`);
-        this.installDependencies();
-        process.stdout.write(`\n`);
-        console.log(figlet.textSync("tsgo cli", 'univers'));
-        process.stdout.write(`\n`);
-        process.stdout.write(`🪬  Successfully created project.\n`);
-        process.stdout.write(`🪬  Get started with the following commands:\n`);
-        process.stdout.write(`\n`);
-        process.stdout.write(`   cd ${this.projectName}\n`);
-        process.stdout.write(`   npm run start\n\n`);
+            if (choices.indexOf('dotenv') !== -1) {
+                process.stdout.write(`Adding dotenv\n`);
+                this.addDotenv();
+            }
+            if (choices.indexOf('eslint') !== -1) {
+                process.stdout.write(`Adding eslint\n`);
+                this.addEslint();
+            }
+            if (choices.indexOf('prettier') !== -1) {
+                process.stdout.write(`Adding prettier\n`);
+                this.addPrettier();
+            }
+            process.stdout.write(`Installing dependencies...\n`);
+            this.installDependencies();
+            process.stdout.write(`\n`);
+            console.log(figlet.textSync('tsgo cli', 'univers'));
+            process.stdout.write(`\n`);
+            process.stdout.write(`🪬  Successfully created project.\n`);
+            process.stdout.write(`🪬  Get started with the following commands:\n`);
+            process.stdout.write(`\n`);
+            process.stdout.write(`   cd ${this.projectName}\n`);
+            process.stdout.write(`   npm run start\n\n`);
+        });
     }
 }
 

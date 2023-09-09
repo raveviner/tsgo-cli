@@ -12,7 +12,7 @@ tsgo create <project_name>
 ```
 or
 ```bash
-npx tsgo create <project_name>
+npx tsgo-cli create <project_name>
 ```
 
 ## Contributing
