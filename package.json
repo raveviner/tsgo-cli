@@ -21,7 +21,20 @@
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": ["typescript", "nodejs", "boilerplate", "starter", "cli", "template", "generator", "ts"],
+  "keywords": [
+    "typescript",
+    "nodejs",
+    "boilerplate",
+    "starter",
+    "cli",
+    "template",
+    "generator",
+    "ts"
+  ],
   "author": "Rave Viner",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bnb/metaverse.git"
+  }
 }
