@@ -1,6 +1,6 @@
 {
   "name": "tsgo-cli",
-  "version": "0.5.0",
+  "version": "0.6.1",
   "description": "CLI tool for generating TypeScript boilerplate",
   "bin": {
     "tsgo": "./index.js"
@@ -35,6 +35,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bnb/metaverse.git"
+    "url": "https://github.com/raveviner/tsgo-cli.git"
   }
 }
