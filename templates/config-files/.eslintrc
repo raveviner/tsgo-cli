@@ -4,4 +4,10 @@
         "browser": true,
         "node": true
     },
+    "ignorePatterns": [
+        "node_modules/",
+        "dist/",
+        "package-lock.json",
+        "README.md"
+    ]
 }

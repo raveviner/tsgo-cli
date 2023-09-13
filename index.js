@@ -71,14 +71,19 @@ class BoilerplateGenerator {
     addEslint() {
         this.devDependencies.push('eslint');
         fs.copyFileSync(path.join(__dirname, '/templates/config-files/.eslintrc'), path.join(this.projectPath, '.eslintrc'));
-        fs.copyFileSync(path.join(__dirname, '/templates/config-files/.eslintignore'), path.join(this.projectPath, '.eslintignore'));
         this.editPackageJson('scripts', (value) => {
             return { ...value, lint: "eslint '**/*.ts'", 'lint:fix': "eslint --fix '**/*.ts'" };
         });
     }
 
-    addPrettier() {
+    addPrettier(withEslint = false) {
         this.devDependencies.push('prettier');
+        if(withEslint) {
+            this.devDependencies.push('eslint-config-prettier');
+            this.editJson('.eslintrc', 'extends', (value) => {
+                return [value, 'prettier'];
+            });
+        }
         fs.copyFileSync(path.join(__dirname, '/templates/config-files/.prettierrc'), path.join(this.projectPath, '.prettierrc'));
         fs.copyFileSync(path.join(__dirname, '/templates/config-files/.prettierignore'), path.join(this.projectPath, '.prettierignore'));
         this.editPackageJson('scripts', (value) => {
@@ -87,9 +92,13 @@ class BoilerplateGenerator {
     }
 
     editPackageJson(field, cb) {
-        const packageJson = JSON.parse(fs.readFileSync(path.join(this.projectPath, 'package.json')).toString());
+       this.editJson('package.json', field, cb);
+    }
+
+    editJson(file, field, cb) {
+        const packageJson = JSON.parse(fs.readFileSync(path.join(this.projectPath, file)).toString());
         packageJson[field] = cb(packageJson[field]);
-        fs.writeFileSync(path.join(this.projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+        fs.writeFileSync(path.join(this.projectPath, file), JSON.stringify(packageJson, null, 2));
     }
 
     generateBoilerplate(choices) {
@@ -112,7 +121,7 @@ class BoilerplateGenerator {
             }
             if (choices.indexOf('prettier') !== -1) {
                 process.stdout.write(`Adding prettier\n`);
-                this.addPrettier();
+                this.addPrettier(choices.indexOf('eslint') !== -1);
             }
             process.stdout.write(`Installing dependencies...\n`);
             this.installDependencies();

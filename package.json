@@ -29,7 +29,8 @@
     "cli",
     "template",
     "generator",
-    "ts"
+    "ts",
+    "tsgo-cli"
   ],
   "author": "Rave Viner",
   "license": "MIT",
