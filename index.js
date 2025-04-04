@@ -8,12 +8,28 @@ const inquirer = require('inquirer');
 const figlet = require('figlet');
 const readline = require('readline');
 
+const dependenciesVersions = {
+    ts_node: 'ts-node@10.9.2',
+    nodemon: 'nodemon@3.1.9',
+    typescript: 'typescript@5.8.2',
+    dotenv: 'dotenv@16.4.7',
+
+    express: 'express@5.1.0',
+
+    swagger_jsdoc: 'swagger-jsdoc@6.2.8',
+    swagger_ui_express: 'swagger-ui-express@5.0.1',
+    types_swagger_jsdoc: '@types/swagger-jsdoc@6.0.4',
+    types_swagger_ui_express: '@types/swagger-ui-express@4.1.8',
+}
+
 class BoilerplateGenerator {
     devDependencies = [];
+    dependencies = []
 
-    constructor(projectName) {
-        this.projectName = projectName;
+    constructor(projectName, projectType) {
+        this.projectName = projectType === 'service-express' ? `${projectName}-service` : projectName;
         this.projectPath = path.join(process.cwd(), this.projectName);
+        this.projectType = projectType;
     }
 
     createProjectDirectory() {
@@ -49,50 +65,83 @@ class BoilerplateGenerator {
     createBaseApp() {
         fs.cpSync(path.join(__dirname, '/templates/base'), this.projectPath, { recursive: true });
         this.editPackageJson('name', () => this.projectName);
-        this.devDependencies.push('ts-node', 'typescript');
+        this.devDependencies.push(dependenciesVersions.ts_node, dependenciesVersions.typescript);
+    }
+
+    createExpressApp() {
+        fs.cpSync(path.join(__dirname, '/templates/express'), this.projectPath, { recursive: true });
+        this.editPackageJson('name', () => this.projectName);
+        this.devDependencies.push(dependenciesVersions.ts_node, dependenciesVersions.typescript);
+        this.dependencies.push(dependenciesVersions.express);
     }
 
     installDependencies() {
         execSync(`npm install ${this.devDependencies.join(' ')} --save-dev`, { cwd: this.projectPath, stdio: 'inherit' });
+        execSync(`npm install ${this.dependencies.join(' ')} --save`, { cwd: this.projectPath, stdio: 'inherit' });
     }
 
     addNodemon() {
-        this.devDependencies.push('nodemon');
+        this.devDependencies.push(dependenciesVersions.nodemon);
         this.editPackageJson('scripts', (value) => {
-            return { ...value, 'start:watch': 'nodemon src/index.ts' };
+            return { ...value, 'dev': 'nodemon src/index.ts' };
         });
     }
 
     addDotenv() {
-        this.devDependencies.push('dotenv');
+        this.devDependencies.push(dependenciesVersions.dotenv);
         fs.writeFileSync(path.join(this.projectPath, '.env'), '');
+
+        const indexPath = path.join(this.projectPath, 'src/index.ts');
+        const dotenvText = `import dotenv from 'dotenv';\ndotenv.config();\n`;
+
+        this.insertTextAfter(indexPath, dotenvText);
     }
 
-    addEslint() {
-        this.devDependencies.push('eslint');
-        fs.copyFileSync(path.join(__dirname, '/templates/config-files/.eslintrc'), path.join(this.projectPath, '.eslintrc'));
-        this.editPackageJson('scripts', (value) => {
-            return { ...value, lint: "eslint '**/*.ts'", 'lint:fix': "eslint --fix '**/*.ts'" };
-        });
+    addSwagger() {
+        this.dependencies.push(dependenciesVersions.swagger_jsdoc, dependenciesVersions.swagger_ui_express);
+        this.devDependencies.push(dependenciesVersions.types_swagger_jsdoc, dependenciesVersions.types_swagger_ui_express);
+
+        fs.copyFileSync(path.join(__dirname, '/templates/swagger/swagger.ts'), this.projectPath + '/src/swagger.ts');
+
+        const indexPath = path.join(this.projectPath, 'src/index.ts');
+        const swaggerImport = `import { setupSwagger } from './swagger';\n`;
+
+        this.insertTextAfter(indexPath, swaggerImport);
+
+        const swaggerSetup = `\n\tsetupSwagger(app);\n`;
+        this.insertTextAfter(indexPath, swaggerSetup, 'const app = await createApp(logger);');
+
+        this.insertTextAfter(indexPath, '\n\t\tconsole.log(`📚 Swagger docs available at http://localhost:${PORT}/docs`);\n', 'console.log(`🚀 Service listening at http://localhost:${PORT}`);');
     }
 
-    addPrettier(withEslint = false) {
-        this.devDependencies.push('prettier');
-        if(withEslint) {
-            this.devDependencies.push('eslint-config-prettier');
-            this.editJson('.eslintrc', 'extends', (value) => {
-                return [value, 'prettier'];
-            });
+    insertTextAfter(filePath, textToInsert, insertAfter) {
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`File does not exist: ${filePath}`);
         }
-        fs.copyFileSync(path.join(__dirname, '/templates/config-files/.prettierrc'), path.join(this.projectPath, '.prettierrc'));
-        fs.copyFileSync(path.join(__dirname, '/templates/config-files/.prettierignore'), path.join(this.projectPath, '.prettierignore'));
-        this.editPackageJson('scripts', (value) => {
-            return { ...value, 'prettier:fix': 'prettier . --write', prettier: 'prettier . --check' };
-        });
+
+        const content = fs.readFileSync(filePath, 'utf-8');
+
+        if (!insertAfter) {
+            // Insert at the top of the file
+            const updatedContent = textToInsert + content;
+            fs.writeFileSync(filePath, updatedContent, 'utf-8');
+            return;
+        }
+
+        const index = content.indexOf(insertAfter);
+        if (index === -1) {
+            throw new Error(`Marker '${insertAfter}' not found in file.`);
+        }
+
+        const insertPosition = index + insertAfter.length;
+        const updatedContent =
+            content.slice(0, insertPosition) + textToInsert + content.slice(insertPosition);
+
+        fs.writeFileSync(filePath, updatedContent, 'utf-8');
     }
 
     editPackageJson(field, cb) {
-       this.editJson('package.json', field, cb);
+        this.editJson('package.json', field, cb);
     }
 
     editJson(file, field, cb) {
@@ -104,7 +153,11 @@ class BoilerplateGenerator {
     generateBoilerplate(choices) {
         process.stdout.write(`Creating project directory ${this.projectName}\n`);
         this.createProjectDirectory().then(() => {
-            this.createBaseApp();
+            if (this.projectType === 'service-express') {
+                this.createExpressApp();
+            } else {
+                this.createBaseApp();
+            }
 
             if (choices.indexOf('nodemon') !== -1) {
                 process.stdout.write(`Adding nodemon\n`);
@@ -115,14 +168,12 @@ class BoilerplateGenerator {
                 process.stdout.write(`Adding dotenv\n`);
                 this.addDotenv();
             }
-            if (choices.indexOf('eslint') !== -1) {
-                process.stdout.write(`Adding eslint\n`);
-                this.addEslint();
+
+            if (choices.indexOf('swagger') !== -1) {
+                process.stdout.write(`Adding swagger\n`);
+                this.addSwagger();
             }
-            if (choices.indexOf('prettier') !== -1) {
-                process.stdout.write(`Adding prettier\n`);
-                this.addPrettier(choices.indexOf('eslint') !== -1);
-            }
+
             process.stdout.write(`Installing dependencies...\n`);
             this.installDependencies();
             process.stdout.write(`\n`);
@@ -141,45 +192,62 @@ const program = new Command();
 
 program.name('tsgo').description('CLI tool for generating TypeScript boilerplate').version(require('./package.json').version);
 
-program
-    .command('create <name>')
+program.command('create <name>')
     .description('Create an app in TypeScript')
-    .action((name) => {
-        const options = [
+    .action(async (name) => {
+
+        const typeOptions = [
             {
-                name: 'nodemon (hot reload)',
-                value: 'nodemon',
+                name: 'service (express)',
+                value: 'service-express',
             },
             {
-                name: 'Dotenv (env variables)',
-                value: 'dotenv',
+                name: 'package',
+                value: 'package',
             },
             {
-                name: 'Linter (eslint)',
-                value: 'eslint',
-            },
-            {
-                name: 'Formatter (prettier)',
-                value: 'prettier',
+                name: 'empty',
+                value: 'empty',
             },
         ];
+        const { type } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'type',
+                message: 'What type of boilerplate do you want to generate?',
+                choices: typeOptions,
+            },
+        ]);
 
-        inquirer
-            .prompt([
+        let features = [];
+
+        if (type === 'service-express' || type === 'package') {
+            const featureOptions = [
+                { name: 'Nodemon (hot reload)', value: 'nodemon' },
+                { name: 'Dotenv (env variables)', value: 'dotenv' },
+                // { name: 'ESLint (linter)', value: 'eslint' },
+                // { name: 'Prettier (formatter)', value: 'prettier' },
+            ];
+
+            if (type === 'service-express') {
+                featureOptions.push({ name: 'Swagger (API documentation)', value: 'swagger' });
+            }
+
+            const featurePrompt = await inquirer.prompt([
                 {
                     type: 'checkbox',
-                    name: 'choice',
-                    message: 'Check the features needed for your project:',
-                    choices: options.map((option) => ({
-                        name: option.name,
-                        value: option.value,
-                    })),
+                    name: 'features',
+                    message: 'Select features to include:',
+                    choices: featureOptions,
                 },
-            ])
-            .then((answers) => {
-                const generator = new BoilerplateGenerator(name);
-                generator.generateBoilerplate(answers.choice);
-            });
-    });
+            ]);
+
+            features = featurePrompt.features;
+        }
+
+        const generator = new BoilerplateGenerator(name, type);
+        generator.generateBoilerplate(features);
+    }
+    );
 
 program.parse(process.argv);
