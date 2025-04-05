@@ -1,5 +1,6 @@
 import express from 'express';
 import routes from './routes';
+import { errorHandler } from './middleware/error-handler';
 
 export async function createApp(logger: express.RequestHandler) {
   const app = express();
@@ -8,6 +9,8 @@ export async function createApp(logger: express.RequestHandler) {
   app.use(logger);
 
   app.use('/api', routes);
+
+  app.use(errorHandler)
 
   return app;
 }

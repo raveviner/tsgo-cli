@@ -1,8 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import morgan from 'morgan';
 
 export const createLogger = (appName: string) => {
-  return (req: Request, _res: Response, next: NextFunction) => {
-    console.log(`[${appName}] ${req.method} ${req.url}`);
-    next();
-  };
+  morgan.token('app-name', () => appName);
+  morgan.format('custom', `[:app-name][:date[iso]] :method :url :status :response-time ms`);
+  return morgan('custom');
 }

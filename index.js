@@ -15,6 +15,8 @@ const dependenciesVersions = {
     dotenv: 'dotenv@16.4.7',
 
     express: 'express@5.1.0',
+    morgan: 'morgan@1.10.0',
+    types_morgan: '@types/morgan@1.9.9',
 
     swagger_jsdoc: 'swagger-jsdoc@6.2.8',
     swagger_ui_express: 'swagger-ui-express@5.0.1',
@@ -25,6 +27,13 @@ const dependenciesVersions = {
 class BoilerplateGenerator {
     devDependencies = [];
     dependencies = []
+
+    choiceToMethod = {
+        'nodemon': this.addNodemon,
+        'dotenv': this.addDotenv,
+        'swagger': this.addSwagger,
+        'dockerfile': this.addDockerfile,
+    }
 
     constructor(projectName, projectType) {
         this.projectName = projectType === 'service-express' ? `${projectName}-service` : projectName;
@@ -64,15 +73,17 @@ class BoilerplateGenerator {
 
     createBaseApp() {
         fs.cpSync(path.join(__dirname, '/templates/base'), this.projectPath, { recursive: true });
+        this.replaceTextInFile(path.join(this.projectPath, 'README.md'), '// [README]', `# ${this.projectName}`);
         this.editPackageJson('name', () => this.projectName);
         this.devDependencies.push(dependenciesVersions.ts_node, dependenciesVersions.typescript);
     }
 
     createExpressApp() {
         fs.cpSync(path.join(__dirname, '/templates/express'), this.projectPath, { recursive: true });
+        this.replaceTextInFile(path.join(this.projectPath, 'README.md'), '// [README]', `# ${this.projectName}`);
         this.editPackageJson('name', () => this.projectName);
-        this.devDependencies.push(dependenciesVersions.ts_node, dependenciesVersions.typescript);
-        this.dependencies.push(dependenciesVersions.express);
+        this.devDependencies.push(dependenciesVersions.ts_node, dependenciesVersions.typescript, dependenciesVersions.types_morgan);
+        this.dependencies.push(dependenciesVersions.express, dependenciesVersions.morgan);
     }
 
     installDependencies() {
@@ -94,7 +105,7 @@ class BoilerplateGenerator {
         const indexPath = path.join(this.projectPath, 'src/index.ts');
         const dotenvText = `import dotenv from 'dotenv';\ndotenv.config();\n`;
 
-        this.insertTextAfter(indexPath, dotenvText);
+        this.replaceTextInFile(indexPath, '// [DOTENV IMPORT]', dotenvText);
     }
 
     addSwagger() {
@@ -104,38 +115,41 @@ class BoilerplateGenerator {
         fs.copyFileSync(path.join(__dirname, '/templates/swagger/swagger.ts'), this.projectPath + '/src/swagger.ts');
 
         const indexPath = path.join(this.projectPath, 'src/index.ts');
-        const swaggerImport = `import { setupSwagger } from './swagger';\n`;
 
-        this.insertTextAfter(indexPath, swaggerImport);
-
-        const swaggerSetup = `\n\tsetupSwagger(app);\n`;
-        this.insertTextAfter(indexPath, swaggerSetup, 'const app = await createApp(logger);');
-
-        this.insertTextAfter(indexPath, '\n\t\tconsole.log(`📚 Swagger docs available at http://localhost:${PORT}/docs`);\n', 'console.log(`🚀 Service listening at http://localhost:${PORT}`);');
+        this.replaceTextInFile(indexPath, '// [SWAGGWER IMPORT]', `import { setupSwagger } from './swagger';\n`);
+        this.replaceTextInFile(indexPath, '// [SWAGGER SETUP]', 'setupSwagger(app);\n');
+        this.replaceTextInFile(indexPath, '// [SWAGGER LOG]', 'console.log(`📚 Swagger docs available at http://localhost:${PORT}/docs`);\n');
     }
 
-    insertTextAfter(filePath, textToInsert, insertAfter) {
+    addDockerfile() {
+        fs.copyFileSync(path.join(__dirname, '/templates/config-files/Dockerfile'), this.projectPath + '/Dockerfile');
+        fs.copyFileSync(path.join(__dirname, '/templates/config-files/.dockerignore'), this.projectPath + '/.dockerignore');
+        this.editPackageJson('scripts', (value) => {
+            return { ...value, 'build:docker': `docker build -t ${this.projectName} .` };
+        });
+    }
+
+    clearPlaceholders() {
+        // Remove all placeholders from the files
+        const files = fs.readdirSync(this.projectPath, { recursive: true });
+        files.forEach((file) => {
+            const filePath = path.join(this.projectPath, file);
+            if (fs.statSync(filePath).isFile()) {
+                const content = fs.readFileSync(filePath, 'utf-8');
+                const updatedContent = content.replace(/\/\/\s*\[.*?\]/g, '');
+                fs.writeFileSync(filePath, updatedContent, 'utf-8');
+            }
+        });
+    }
+
+    replaceTextInFile(filePath, searchValue, replaceValue) {
         if (!fs.existsSync(filePath)) {
             throw new Error(`File does not exist: ${filePath}`);
         }
 
         const content = fs.readFileSync(filePath, 'utf-8');
 
-        if (!insertAfter) {
-            // Insert at the top of the file
-            const updatedContent = textToInsert + content;
-            fs.writeFileSync(filePath, updatedContent, 'utf-8');
-            return;
-        }
-
-        const index = content.indexOf(insertAfter);
-        if (index === -1) {
-            throw new Error(`Marker '${insertAfter}' not found in file.`);
-        }
-
-        const insertPosition = index + insertAfter.length;
-        const updatedContent =
-            content.slice(0, insertPosition) + textToInsert + content.slice(insertPosition);
+        const updatedContent = content.replace(searchValue, replaceValue);
 
         fs.writeFileSync(filePath, updatedContent, 'utf-8');
     }
@@ -159,21 +173,14 @@ class BoilerplateGenerator {
                 this.createBaseApp();
             }
 
-            if (choices.indexOf('nodemon') !== -1) {
-                process.stdout.write(`Adding nodemon\n`);
-                this.addNodemon();
-            }
+            choices.forEach((choice) => {
+                if (this.choiceToMethod[choice]) {
+                    process.stdout.write(`Adding ${choice}\n`);
+                    this.choiceToMethod[choice].call(this);
+                }
+            });
 
-            if (choices.indexOf('dotenv') !== -1) {
-                process.stdout.write(`Adding dotenv\n`);
-                this.addDotenv();
-            }
-
-            if (choices.indexOf('swagger') !== -1) {
-                process.stdout.write(`Adding swagger\n`);
-                this.addSwagger();
-            }
-
+            this.clearPlaceholders();
             process.stdout.write(`Installing dependencies...\n`);
             this.installDependencies();
             process.stdout.write(`\n`);
@@ -225,6 +232,7 @@ program.command('create <name>')
             const featureOptions = [
                 { name: 'Nodemon (hot reload)', value: 'nodemon' },
                 { name: 'Dotenv (env variables)', value: 'dotenv' },
+                // { name: 'Dockerfile', value: 'dockerfile' },
                 // { name: 'ESLint (linter)', value: 'eslint' },
                 // { name: 'Prettier (formatter)', value: 'prettier' },
             ];
