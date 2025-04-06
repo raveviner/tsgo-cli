@@ -99,7 +99,7 @@ class BoilerplateGenerator {
     }
 
     addDotenv() {
-        this.devDependencies.push(dependenciesVersions.dotenv);
+        this.dependencies.push(dependenciesVersions.dotenv);
         fs.writeFileSync(path.join(this.projectPath, '.env'), '');
 
         const indexPath = path.join(this.projectPath, 'src/index.ts');
@@ -232,7 +232,7 @@ program.command('create <name>')
             const featureOptions = [
                 { name: 'Nodemon (hot reload)', value: 'nodemon' },
                 { name: 'Dotenv (env variables)', value: 'dotenv' },
-                // { name: 'Dockerfile', value: 'dockerfile' },
+                { name: 'Dockerfile', value: 'dockerfile' },
                 // { name: 'ESLint (linter)', value: 'eslint' },
                 // { name: 'Prettier (formatter)', value: 'prettier' },
             ];
