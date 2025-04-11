@@ -1,7 +1,8 @@
 import { createApp } from './app';
-import { createLogger } from './middleware/logger';
 import path from 'node:path';
 import { readFileSync } from 'node:fs';
+import { createLogger } from './utils/logger';
+
 // [SWAGGWER IMPORT]
 // [DOTENV IMPORT]
 
@@ -13,12 +14,13 @@ async function main() {
   
   const appName = packageJson.name;
   const appVersion = packageJson.version;
-  const logger = createLogger(`${appName} v${appVersion}`);
+
+  const logger = createLogger(`${appName}@${appVersion}`);
   const app = await createApp(logger);
   // [SWAGGER SETUP]
 
   app.listen(PORT, () => {
-    console.log(`🚀 Service listening at http://localhost:${PORT}`);
+    logger.info(`Service listening at http://localhost:${PORT}`);
     // [SWAGGER LOG]
   });
 }

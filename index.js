@@ -15,8 +15,8 @@ const dependenciesVersions = {
     dotenv: 'dotenv@16.4.7',
 
     express: 'express@5.1.0',
-    morgan: 'morgan@1.10.0',
-    types_morgan: '@types/morgan@1.9.9',
+    types_express: '@types/express@5.0.1',
+    winston: 'winston@3.17.0',
 
     swagger_jsdoc: 'swagger-jsdoc@6.2.8',
     swagger_ui_express: 'swagger-ui-express@5.0.1',
@@ -82,8 +82,8 @@ class BoilerplateGenerator {
         fs.cpSync(path.join(__dirname, '/templates/express'), this.projectPath, { recursive: true });
         this.replaceTextInFile(path.join(this.projectPath, 'README.md'), '// [README]', `# ${this.projectName}`);
         this.editPackageJson('name', () => this.projectName);
-        this.devDependencies.push(dependenciesVersions.ts_node, dependenciesVersions.typescript, dependenciesVersions.types_morgan);
-        this.dependencies.push(dependenciesVersions.express, dependenciesVersions.morgan);
+        this.devDependencies.push(dependenciesVersions.ts_node, dependenciesVersions.typescript, dependenciesVersions.types_express);
+        this.dependencies.push(dependenciesVersions.express, dependenciesVersions.winston);
     }
 
     installDependencies() {
@@ -118,7 +118,7 @@ class BoilerplateGenerator {
 
         this.replaceTextInFile(indexPath, '// [SWAGGWER IMPORT]', `import { setupSwagger } from './swagger';\n`);
         this.replaceTextInFile(indexPath, '// [SWAGGER SETUP]', 'setupSwagger(app);\n');
-        this.replaceTextInFile(indexPath, '// [SWAGGER LOG]', 'console.log(`📚 Swagger docs available at http://localhost:${PORT}/docs`);\n');
+        this.replaceTextInFile(indexPath, '// [SWAGGER LOG]', 'logger.info(`Swagger docs available at http://localhost:${PORT}/docs`);\n');
     }
 
     addDockerfile() {
