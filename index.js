@@ -9,23 +9,53 @@ const figlet = require('figlet');
 const readline = require('readline');
 
 function createBoilerplateGenerator(projectRelativePath) {
+    // Helper function to copy directory with empty folders
+    function copyDirRecursiveSync(src, dest) {
+        if (!fs.existsSync(dest)) {
+            fs.mkdirSync(dest, { recursive: true });
+        }
+
+        const entries = fs.readdirSync(src, { withFileTypes: true });
+        
+        for (const entry of entries) {
+            const srcPath = path.join(src, entry.name);
+            const destPath = path.join(dest, entry.name);
+            
+            if (entry.isDirectory()) {
+                // Create directory even if it's empty
+                if (!fs.existsSync(destPath)) {
+                    fs.mkdirSync(destPath, { recursive: true });
+                }
+                // Recursively copy contents
+                copyDirRecursiveSync(srcPath, destPath);
+            } else {
+                // Copy file
+                fs.copyFileSync(srcPath, destPath);
+            }
+        }
+    }
+    
     const boilerplateTypeToAction = {
         monorepo: () => {
-            fs.cpSync(path.join(__dirname, '/templates/monorepo'), projectPath, { recursive: true });
+            // Use custom function to ensure empty folders are copied
+            copyDirRecursiveSync(path.join(__dirname, '/templates/monorepo'), projectPath);
             replaceTextInFile(path.join(projectPath, 'README.md'), '// [README]', `# ${projectName}`);
         },
         fastify: () => {
-            fs.cpSync(path.join(__dirname, '/templates/fastify'), projectPath, { recursive: true });
+            // Use custom function to ensure empty folders are copied
+            copyDirRecursiveSync(path.join(__dirname, '/templates/fastify'), projectPath);
             replaceTextInFile(path.join(projectPath, 'README.md'), '// [README]', `# ${projectName}`);
             editPackageJson('name', () => projectName);
         },
         package: () => {
-            fs.cpSync(path.join(__dirname, '/templates/package'), projectPath, { recursive: true });
+            // Use custom function to ensure empty folders are copied
+            copyDirRecursiveSync(path.join(__dirname, '/templates/package'), projectPath);
             replaceTextInFile(path.join(projectPath, 'README.md'), '// [README]', `# ${projectName}`);
             editPackageJson('name', () => projectName);
         },
         empty: () => {
-            fs.cpSync(path.join(__dirname, '/templates/empty'), projectPath, { recursive: true });
+            // Use custom function to ensure empty folders are copied
+            copyDirRecursiveSync(path.join(__dirname, '/templates/empty'), projectPath);
             replaceTextInFile(path.join(projectPath, 'README.md'), '// [README]', `# ${projectName}`);
             editPackageJson('name', () => projectName);
         },
