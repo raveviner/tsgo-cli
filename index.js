@@ -8,55 +8,48 @@ const inquirer = require('inquirer');
 const figlet = require('figlet');
 const readline = require('readline');
 
-const dependenciesVersions = {
-    ts_node: 'ts-node@10.9.2',
-    nodemon: 'nodemon@3.1.9',
-    typescript: 'typescript@5.8.2',
-    dotenv: 'dotenv@16.4.7',
-
-    express: 'express@5.1.0',
-    types_express: '@types/express@5.0.1',
-    winston: 'winston@3.17.0',
-
-    swagger_jsdoc: 'swagger-jsdoc@6.2.8',
-    swagger_ui_express: 'swagger-ui-express@5.0.1',
-    types_swagger_jsdoc: '@types/swagger-jsdoc@6.0.4',
-    types_swagger_ui_express: '@types/swagger-ui-express@4.1.8',
-}
-
-class BoilerplateGenerator {
-    devDependencies = [];
-    dependencies = []
-
-    choiceToMethod = {
-        'nodemon': this.addNodemon,
-        'dotenv': this.addDotenv,
-        'swagger': this.addSwagger,
-        'dockerfile': this.addDockerfile,
+function createBoilerplateGenerator(projectRelativePath) {
+    const boilerplateTypeToAction = {
+        monorepo: () => {
+            fs.cpSync(path.join(__dirname, '/templates/monorepo'), projectPath, { recursive: true });
+            replaceTextInFile(path.join(projectPath, 'README.md'), '// [README]', `# ${projectName}`);
+        },
+        fastify: () => {
+            fs.cpSync(path.join(__dirname, '/templates/fastify'), projectPath, { recursive: true });
+            replaceTextInFile(path.join(projectPath, 'README.md'), '// [README]', `# ${projectName}`);
+            editPackageJson('name', () => projectName);
+        },
+        package: () => {
+            fs.cpSync(path.join(__dirname, '/templates/package'), projectPath, { recursive: true });
+            replaceTextInFile(path.join(projectPath, 'README.md'), '// [README]', `# ${projectName}`);
+            editPackageJson('name', () => projectName);
+        },
+        empty: () => {
+            fs.cpSync(path.join(__dirname, '/templates/empty'), projectPath, { recursive: true });
+            replaceTextInFile(path.join(projectPath, 'README.md'), '// [README]', `# ${projectName}`);
+            editPackageJson('name', () => projectName);
+        },
     }
 
-    constructor(projectName, projectType) {
-        this.projectName = projectType === 'service-express' ? `${projectName}-service` : projectName;
-        this.projectPath = path.join(process.cwd(), this.projectName);
-        this.projectType = projectType;
-    }
+    const projectPath = path.join(process.cwd(), projectRelativePath);
+    const projectName = projectRelativePath.split('/').pop();
 
-    createProjectDirectory() {
+    function createProjectDirectory() {
         return new Promise((resolve) => {
-            if (fs.existsSync(this.projectPath)) {
+            if (fs.existsSync(projectPath)) {
                 const rl = readline.createInterface({
                     input: process.stdin,
                     output: process.stdout,
                 });
 
-                rl.question(`Destination folder '${this.projectPath}' already exists. Do you want to overwrite it? (yes/no): `, (answer) => {
+                rl.question(`Destination folder '${projectPath}' already exists. Do you want to overwrite it? (yes/no): `, (answer) => {
                     if (!['yes', 'y'].includes(answer.toLowerCase())) {
                         process.stdout.write('Aborted.\n');
                         process.exit(0);
                     }
                     try {
-                        fs.rmSync(this.projectPath, { recursive: true });
-                        fs.mkdirSync(this.projectPath);
+                        fs.rmSync(projectPath, { recursive: true });
+                        fs.mkdirSync(projectPath);
                         rl.close();
                         resolve();
                     } catch (e) {
@@ -65,84 +58,17 @@ class BoilerplateGenerator {
                     }
                 });
             } else {
-                fs.mkdirSync(this.projectPath);
+                fs.mkdirSync(projectPath);
                 resolve();
             }
         });
     }
 
-    createBaseApp() {
-        fs.cpSync(path.join(__dirname, '/templates/base'), this.projectPath, { recursive: true });
-        this.replaceTextInFile(path.join(this.projectPath, 'README.md'), '// [README]', `# ${this.projectName}`);
-        this.editPackageJson('name', () => this.projectName);
-        this.devDependencies.push(dependenciesVersions.ts_node, dependenciesVersions.typescript);
+    function installDependencies() {
+        execSync(`npm install`, { cwd: projectPath, stdio: 'inherit' });
     }
 
-    createExpressApp() {
-        fs.cpSync(path.join(__dirname, '/templates/express'), this.projectPath, { recursive: true });
-        this.replaceTextInFile(path.join(this.projectPath, 'README.md'), '// [README]', `# ${this.projectName}`);
-        this.editPackageJson('name', () => this.projectName);
-        this.devDependencies.push(dependenciesVersions.ts_node, dependenciesVersions.typescript, dependenciesVersions.types_express);
-        this.dependencies.push(dependenciesVersions.express, dependenciesVersions.winston);
-    }
-
-    installDependencies() {
-        execSync(`npm install ${this.devDependencies.join(' ')} --save-dev`, { cwd: this.projectPath, stdio: 'inherit' });
-        execSync(`npm install ${this.dependencies.join(' ')} --save`, { cwd: this.projectPath, stdio: 'inherit' });
-    }
-
-    addNodemon() {
-        this.devDependencies.push(dependenciesVersions.nodemon);
-        this.editPackageJson('scripts', (value) => {
-            return { ...value, 'dev': 'nodemon src/index.ts' };
-        });
-    }
-
-    addDotenv() {
-        this.dependencies.push(dependenciesVersions.dotenv);
-        fs.writeFileSync(path.join(this.projectPath, '.env'), '');
-
-        const indexPath = path.join(this.projectPath, 'src/index.ts');
-        const dotenvText = `import dotenv from 'dotenv';\ndotenv.config();\n`;
-
-        this.replaceTextInFile(indexPath, '// [DOTENV IMPORT]', dotenvText);
-    }
-
-    addSwagger() {
-        this.dependencies.push(dependenciesVersions.swagger_jsdoc, dependenciesVersions.swagger_ui_express);
-        this.devDependencies.push(dependenciesVersions.types_swagger_jsdoc, dependenciesVersions.types_swagger_ui_express);
-
-        fs.copyFileSync(path.join(__dirname, '/templates/swagger/swagger.ts'), this.projectPath + '/src/swagger.ts');
-
-        const indexPath = path.join(this.projectPath, 'src/index.ts');
-
-        this.replaceTextInFile(indexPath, '// [SWAGGWER IMPORT]', `import { setupSwagger } from './swagger';\n`);
-        this.replaceTextInFile(indexPath, '// [SWAGGER SETUP]', 'setupSwagger(app);\n');
-        this.replaceTextInFile(indexPath, '// [SWAGGER LOG]', 'logger.info(`Swagger docs available at http://localhost:${PORT}/docs`);\n');
-    }
-
-    addDockerfile() {
-        fs.copyFileSync(path.join(__dirname, '/templates/config-files/Dockerfile'), this.projectPath + '/Dockerfile');
-        fs.copyFileSync(path.join(__dirname, '/templates/config-files/.dockerignore'), this.projectPath + '/.dockerignore');
-        this.editPackageJson('scripts', (value) => {
-            return { ...value, 'build:docker': `docker build -t ${this.projectName} .` };
-        });
-    }
-
-    clearPlaceholders() {
-        // Remove all placeholders from the files
-        const files = fs.readdirSync(this.projectPath, { recursive: true });
-        files.forEach((file) => {
-            const filePath = path.join(this.projectPath, file);
-            if (fs.statSync(filePath).isFile()) {
-                const content = fs.readFileSync(filePath, 'utf-8');
-                const updatedContent = content.replace(/\/\/\s*\[.*?\]/g, '');
-                fs.writeFileSync(filePath, updatedContent, 'utf-8');
-            }
-        });
-    }
-
-    replaceTextInFile(filePath, searchValue, replaceValue) {
+    function replaceTextInFile(filePath, searchValue, replaceValue) {
         if (!fs.existsSync(filePath)) {
             throw new Error(`File does not exist: ${filePath}`);
         }
@@ -154,44 +80,46 @@ class BoilerplateGenerator {
         fs.writeFileSync(filePath, updatedContent, 'utf-8');
     }
 
-    editPackageJson(field, cb) {
-        this.editJson('package.json', field, cb);
+    function editPackageJson(field, cb) {
+        editJson('package.json', field, cb);
     }
 
-    editJson(file, field, cb) {
-        const packageJson = JSON.parse(fs.readFileSync(path.join(this.projectPath, file)).toString());
+    function editJson(file, field, cb) {
+        const packageJson = JSON.parse(fs.readFileSync(path.join(projectPath, file)).toString());
         packageJson[field] = cb(packageJson[field]);
-        fs.writeFileSync(path.join(this.projectPath, file), JSON.stringify(packageJson, null, 2));
+        fs.writeFileSync(path.join(projectPath, file), JSON.stringify(packageJson, null, 2));
     }
 
-    generateBoilerplate(choices) {
-        process.stdout.write(`Creating project directory ${this.projectName}\n`);
-        this.createProjectDirectory().then(() => {
-            if (this.projectType === 'service-express') {
-                this.createExpressApp();
-            } else {
-                this.createBaseApp();
-            }
+    function getBoilerplateChoices() {
+        return Object.keys(boilerplateTypeToAction).map((key) => ({
+            name: key,
+            value: key,
+        }));
+    }
 
-            choices.forEach((choice) => {
-                if (this.choiceToMethod[choice]) {
-                    process.stdout.write(`Adding ${choice}\n`);
-                    this.choiceToMethod[choice].call(this);
-                }
-            });
-
-            this.clearPlaceholders();
+    async function generateBoilerplate(type) {
+        process.stdout.write(`Creating project directory ${projectName}\n`);
+        await createProjectDirectory()
+        await boilerplateTypeToAction[type]();
+        if (type === 'monorepo') {
+            process.stdout.write(`🪬  Successfully created project.\n`);
+        } else {
             process.stdout.write(`Installing dependencies...\n`);
-            this.installDependencies();
+            installDependencies();
             process.stdout.write(`\n`);
             console.log(figlet.textSync('tsgo cli', 'univers'));
             process.stdout.write(`\n`);
             process.stdout.write(`🪬  Successfully created project.\n`);
             process.stdout.write(`🪬  Get started with the following commands:\n`);
             process.stdout.write(`\n`);
-            process.stdout.write(`   cd ${this.projectName}\n`);
-            process.stdout.write(`   npm run start\n\n`);
-        });
+            process.stdout.write(`   cd ${projectName}\n`);
+            process.stdout.write(`   npm run dev\n\n`);
+        }
+    }
+
+    return {
+        generateBoilerplate,
+        getBoilerplateChoices
     }
 }
 
@@ -202,60 +130,98 @@ program.name('tsgo').description('CLI tool for generating TypeScript boilerplate
 program.command('create <name>')
     .description('Create an app in TypeScript')
     .action(async (name) => {
+        const generator = createBoilerplateGenerator(name);
 
-        const typeOptions = [
-            {
-                name: 'service (express)',
-                value: 'service-express',
-            },
-            {
-                name: 'package',
-                value: 'package',
-            },
-            {
-                name: 'empty',
-                value: 'empty',
-            },
-        ];
         const { type } = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'type',
                 message: 'What type of boilerplate do you want to generate?',
-                choices: typeOptions,
+                choices: generator.getBoilerplateChoices(),
             },
         ]);
 
-        let features = [];
-
-        if (type === 'service-express' || type === 'package') {
-            const featureOptions = [
-                { name: 'Nodemon (hot reload)', value: 'nodemon' },
-                { name: 'Dotenv (env variables)', value: 'dotenv' },
-                { name: 'Dockerfile', value: 'dockerfile' },
-                // { name: 'ESLint (linter)', value: 'eslint' },
-                // { name: 'Prettier (formatter)', value: 'prettier' },
-            ];
-
-            if (type === 'service-express') {
-                featureOptions.push({ name: 'Swagger (API documentation)', value: 'swagger' });
-            }
-
-            const featurePrompt = await inquirer.prompt([
-                {
-                    type: 'checkbox',
-                    name: 'features',
-                    message: 'Select features to include:',
-                    choices: featureOptions,
-                },
-            ]);
-
-            features = featurePrompt.features;
-        }
-
-        const generator = new BoilerplateGenerator(name, type);
-        generator.generateBoilerplate(features);
-    }
-    );
+        generator.generateBoilerplate(type)
+    });
 
 program.parse(process.argv);
+
+// async function generateBoilerplate(name, type) {
+//     process.stdout.write(`Creating project directory ${name}\n`);
+//     await createProjectDirectory()
+//     // if (projectType === 'service-express') {
+//     //     createExpressApp();
+//     // } else {
+//     //     createBaseApp();
+//     // }
+
+//     // choices.forEach((choice) => {
+//     //     if (choiceToMethod[choice]) {
+//     //         process.stdout.write(`Adding ${choice}\n`);
+//     //         choiceToMethod[choice].call(this);
+//     //     }
+//     // });
+
+//     // clearPlaceholders();
+//     process.stdout.write(`Installing dependencies...\n`);
+//     installDependencies();
+//     process.stdout.write(`\n`);
+//     console.log(figlet.textSync('tsgo cli', 'univers'));
+//     process.stdout.write(`\n`);
+//     process.stdout.write(`🪬  Successfully created project.\n`);
+//     process.stdout.write(`🪬  Get started with the following commands:\n`);
+//     process.stdout.write(`\n`);
+//     process.stdout.write(`   cd ${name}\n`);
+//     process.stdout.write(`   npm run start\n\n`);
+
+// }
+
+// async function createProjectDirectory() {
+//     return new Promise((resolve) => {
+//         if (fs.existsSync(projectPath)) {
+//             const rl = readline.createInterface({
+//                 input: process.stdin,
+//                 output: process.stdout,
+//             });
+
+//             rl.question(`Destination folder '${projectPath}' already exists. Do you want to overwrite it? (yes/no): `, (answer) => {
+//                 if (!['yes', 'y'].includes(answer.toLowerCase())) {
+//                     process.stdout.write('Aborted.\n');
+//                     process.exit(0);
+//                 }
+//                 try {
+//                     fs.rmSync(projectPath, { recursive: true });
+//                     fs.mkdirSync(projectPath);
+//                     rl.close();
+//                     resolve();
+//                 } catch (e) {
+//                     process.stdout.write('Failed to remove directory.\n');
+//                     process.exit(1);
+//                 }
+//             });
+//         } else {
+//             fs.mkdirSync(projectPath);
+//             resolve();
+//         }
+//     });
+// }
+
+// function replaceTextInFile(filePath, searchValue, replaceValue) {
+//     if (!fs.existsSync(filePath)) {
+//         throw new Error(`File does not exist: ${filePath}`);
+//     }
+//     const content = fs.readFileSync(filePath, 'utf-8');
+//     const updatedContent = content.replace(searchValue, replaceValue);
+//     fs.writeFileSync(filePath, updatedContent, 'utf-8');
+// }
+
+// function editPackageJson(field, cb) {
+//     editJson('package.json', field, cb);
+// }
+
+// function editJson(file, field, cb) {
+//     const packageJson = JSON.parse(fs.readFileSync(path.join(projectPath, file)).toString());
+//     packageJson[field] = cb(packageJson[field]);
+//     fs.writeFileSync(path.join(projectPath, file), JSON.stringify(packageJson, null, 2));
+// }
+
