@@ -1,5 +1,6 @@
 import fastifyCors from '@fastify/cors';
 import Fastify, { type FastifyInstance, type FastifyRequest, type FastifyReply } from 'fastify';
+import { StatusCodes } from 'http-status-codes';
 import { exampleController } from './controllers/example.controller.js';
 
 interface AppError extends Error {
@@ -9,6 +10,7 @@ interface AppError extends Error {
 }
 
 async function createApp({ logger }: { logger: boolean }): Promise<FastifyInstance> {
+  // disable test coverage
   /* istanbul ignore next */
   const loggerConfig = logger
     ? {
@@ -33,18 +35,18 @@ async function createApp({ logger }: { logger: boolean }): Promise<FastifyInstan
   });
 
   // Register routes
-  app.register(exampleController, { prefix: '/api' });
+  app.register(exampleController({ logger: app.log }), { prefix: '/api' });
 
   // Health check endpoint
-  app.get('/health', async () => ({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-  }));
+  app.get('/health', async (req, res) => {
+    return res.status(StatusCodes.OK).send({ status: 'ok', timestamp: new Date().toISOString() });
+  });
 
   // Global error handler
+  // disable test coverage
   /* istanbul ignore next */
   app.setErrorHandler((error: AppError, request: FastifyRequest, reply: FastifyReply) => {
-    const statusCode = error.statusCode || 500;
+    const statusCode = error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
 
     app.log.error(error);
     void reply.status(statusCode).send({
