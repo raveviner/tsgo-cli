@@ -1,6 +1,6 @@
 {
   "name": "tsgo-cli",
-  "version": "2.0.9",
+  "version": "2.0.10",
   "description": "CLI tool for generating TypeScript boilerplate",
   "bin": {
     "tsgo": "index.js"
