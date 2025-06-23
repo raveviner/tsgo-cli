@@ -1,3 +1,10 @@
+## [2.0.8](https://github.com/raveviner/tsgo-cli/compare/v2.0.7...v2.0.8) (2025-06-23)
+
+
+### Bug Fixes
+
+* update semantic-release configuration ([e05af9f](https://github.com/raveviner/tsgo-cli/commit/e05af9fd1b01b5f09fdb6d3e3240221f2da48b90))
+
 # 1.0.0 (2025-06-23)
 
 
