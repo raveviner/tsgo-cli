@@ -1,7 +1,8 @@
 import fastifyCors from '@fastify/cors';
 import Fastify, { type FastifyInstance, type FastifyRequest, type FastifyReply } from 'fastify';
 import { StatusCodes } from 'http-status-codes';
-import { exampleController } from './controllers/example.controller.js';
+import { getExampleController } from './controllers/get-example.controller.js';
+import { postExampleController } from './controllers/post-example.controller.js';
 
 interface AppError extends Error {
   statusCode?: number;
@@ -19,6 +20,7 @@ async function createApp({ logger }: { logger: boolean }): Promise<FastifyInstan
           options: {
             translateTime: 'HH:MM:ss Z',
             ignore: 'pid,hostname',
+            singleLine: true,
           },
         },
       }
@@ -34,8 +36,14 @@ async function createApp({ logger }: { logger: boolean }): Promise<FastifyInstan
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
-  // Register routes
-  app.register(exampleController({ logger: app.log }), { prefix: '/api' });
+  // Register controllers
+  app.register(
+    async (apiRouter) => {
+      apiRouter.register(getExampleController({ logger: app.log }));
+      apiRouter.register(postExampleController({ logger: app.log }));
+    },
+    { prefix: '/api' }
+  );
 
   // Health check endpoint
   app.get('/health', async (req, res) => {

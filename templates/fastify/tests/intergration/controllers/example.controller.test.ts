@@ -1,5 +1,6 @@
 import { type FastifyInstance } from 'fastify';
-import { createApp } from '../../src/app.js';
+import { createApp } from '../../../src/app.js';
+import { GetExampleResponse, PostExampleResponse } from '../../../src/types/example.types.js';
 
 describe('Example Controller', () => {
   let app: FastifyInstance;
@@ -22,7 +23,7 @@ describe('Example Controller', () => {
 
       expect(response.statusCode).toBe(200);
 
-      const body = response.json();
+      const body = response.json<GetExampleResponse>();
       expect(body).toHaveProperty('message', 'Hello from Fastify API!');
     });
   });
@@ -38,7 +39,7 @@ describe('Example Controller', () => {
 
       expect(response.statusCode).toBe(200);
 
-      const body = response.json();
+      const body = response.json<PostExampleResponse>();
       expect(body).toHaveProperty('message', `Hello, ${testName}!`);
       expect(body).toHaveProperty('timestamp');
       expect(new Date(body.timestamp).getTime()).not.toBeNaN();
@@ -52,6 +53,10 @@ describe('Example Controller', () => {
       });
 
       expect(response.statusCode).toBe(400);
+      expect(response.json<PostExampleResponse>()).toHaveProperty(
+        'message',
+        "body must have required property 'name'"
+      );
     });
   });
 });
