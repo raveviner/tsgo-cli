@@ -1,3 +1,10 @@
+## [2.0.12](https://github.com/raveviner/tsgo-cli/compare/v2.0.11...v2.0.12) (2025-07-09)
+
+
+### Bug Fixes
+
+* cleaner code ([f1f4407](https://github.com/raveviner/tsgo-cli/commit/f1f4407e727cc8abdbb5f8be8b7541ca33985be9))
+
 ## [2.0.11](https://github.com/raveviner/tsgo-cli/compare/v2.0.10...v2.0.11) (2025-06-25)
 
 
